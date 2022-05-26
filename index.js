@@ -12,3 +12,7 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Successfully running server");
 });
+
+app.listen(port, () => {
+  console.log("Listening to port  ", port);
+});
