@@ -10,6 +10,22 @@ const port = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).send({ message: "Unauthorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
+
 // Trying to fix CORS Policy error which fixed was fixed by making send argument an object
 app.use(function (req, res, next) {
   // Website you wish to allow to connect
@@ -59,9 +75,7 @@ const run = async () => {
     // Add or update user
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email);
       const user = req.body;
-      console.log(user);
       const filter = { email: email };
       const options = { upsert: true };
       const updateDoc = {
@@ -75,6 +89,14 @@ const run = async () => {
       const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET);
 
       res.send({ result, token });
+    });
+
+    // Load all users
+    app.get("/users", async (req, res) => {
+      const query = {};
+      const cursor = usersCollection.find(query);
+      const usersArray = await cursor.toArray();
+      res.send(usersArray);
     });
 
     // Load all parts
@@ -94,13 +116,18 @@ const run = async () => {
     });
 
     // Get Filtered orders
-    app.get("/orders/filter", async (req, res) => {
+    app.get("/orders/filter", verifyJWT, async (req, res) => {
       const email = req.query.email;
-      console.log(email);
-      const query = { email: email };
-      const cursor = ordersCollection.find(query);
-      const orders = await cursor.toArray();
-      res.send(orders);
+      const decodedEmail = req.decoded.email;
+      console.log(decodedEmail);
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = ordersCollection.find(query);
+        const orders = await cursor.toArray();
+        return res.send(orders);
+      } else {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
     });
 
     // Create new order
