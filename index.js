@@ -10,6 +10,31 @@ const port = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
+// Trying to fix CORS Policy error which fixed was fixed by making send argument an object
+app.use(function (req, res, next) {
+  // Website you wish to allow to connect
+  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+
+  // Request methods you wish to allow
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+  );
+
+  // Request headers you wish to allow
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-Requested-With,content-type"
+  );
+
+  // Set to true if you need the website to include cookies in the requests sent
+  // to the API (e.g. in case you use sessions)
+  res.setHeader("Access-Control-Allow-Credentials", true);
+
+  // Pass to next layer of middleware
+  next();
+});
+
 app.get("/", (req, res) => {
   res.send("Successfully running server on port");
 });
@@ -29,6 +54,28 @@ const run = async () => {
     const partsCollection = database.collection("partsCollection");
     const reviewsCollection = database.collection("reviewsCollection");
     const ordersCollection = database.collection("ordersCollection");
+    const usersCollection = database.collection("usersCollection");
+
+    // Add or update user
+    app.put("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      const user = req.body;
+      console.log(user);
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET);
+
+      res.send({ result, token });
+    });
 
     // Load all parts
     app.get("/parts", async (req, res) => {
