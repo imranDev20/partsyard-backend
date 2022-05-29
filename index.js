@@ -221,6 +221,32 @@ const run = async () => {
       res.send(result);
       console.log(result);
     });
+
+    // Delete an order
+    app.delete("/order/:orderId", async (req, res) => {
+      const id = req.params.orderId;
+      const query = { _id: ObjectId(id) };
+      const result = await ordersCollection.deleteOne(query);
+      res.send(result);
+      console.log(result);
+    });
+
+    // Load all reviews
+    app.get("/reviews", async (req, res) => {
+      const query = {};
+      const cursor = reviewsCollection.find(query);
+      const reviewsArray = await cursor.toArray();
+      res.send(reviewsArray);
+    });
+
+    // Create new review
+    app.post("/reviews", async (req, res) => {
+      const newReview = req.body;
+      console.log("adding new item", newReview);
+      const result = await reviewsCollection.insertOne(newReview);
+      console.log(`A document was inserted with the _id: ${result.insertedId}`);
+      res.send(result);
+    });
   } finally {
   }
 };
