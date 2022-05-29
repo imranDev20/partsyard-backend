@@ -27,29 +27,29 @@ function verifyJWT(req, res, next) {
 }
 
 // Trying to fix CORS Policy error which fixed was fixed by making send argument an object
-app.use(function (req, res, next) {
-  // Website you wish to allow to connect
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+// app.use(function (req, res, next) {
+//   // Website you wish to allow to connect
+//   res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
 
-  // Request methods you wish to allow
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
-  );
+//   // Request methods you wish to allow
+//   res.setHeader(
+//     "Access-Control-Allow-Methods",
+//     "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+//   );
 
-  // Request headers you wish to allow
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "X-Requested-With,content-type"
-  );
+//   // Request headers you wish to allow
+//   res.setHeader(
+//     "Access-Control-Allow-Headers",
+//     "X-Requested-With,content-type"
+//   );
 
-  // Set to true if you need the website to include cookies in the requests sent
-  // to the API (e.g. in case you use sessions)
-  res.setHeader("Access-Control-Allow-Credentials", true);
+//   // Set to true if you need the website to include cookies in the requests sent
+//   // to the API (e.g. in case you use sessions)
+//   res.setHeader("Access-Control-Allow-Credentials", true);
 
-  // Pass to next layer of middleware
-  next();
-});
+//   // Pass to next layer of middleware
+//   next();
+// });
 
 app.get("/", (req, res) => {
   res.send("Successfully running server on port");
@@ -73,15 +73,31 @@ const run = async () => {
     const usersCollection = database.collection("usersCollection");
 
     // Make admin
-    app.put("/user/admin/:email", async (req, res) => {
+    app.put("/user/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
-      const filter = { email: email };
-      const updateDoc = {
-        $set: { role: "admin" },
-      };
-      const result = await usersCollection.updateOne(filter, updateDoc);
+      const requester = req.decoded.email;
+      const requesterAccoount = await usersCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccoount.role === "admin") {
+        const filter = { email: email };
+        const updateDoc = {
+          $set: { role: "admin" },
+        };
+        const result = await usersCollection.updateOne(filter, updateDoc);
 
-      res.send(result);
+        res.send(result);
+      } else {
+        res.status(403).send({ message: "Forbidden access" });
+      }
+    });
+
+    // Check admin
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await usersCollection.findOne({ email: email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
     });
 
     // Add or update user
@@ -125,6 +141,22 @@ const run = async () => {
       const query = { _id: ObjectId(id) };
       const result = await partsCollection.findOne(query);
       res.send(result);
+    });
+
+    // Get single inventory item
+    app.get("/inventory/:itemId", async (req, res) => {
+      const id = req.params.itemId;
+      const query = { _id: ObjectId(id) };
+      const result = await vegetables.findOne(query);
+      res.send(result);
+    });
+
+    // Load all orders
+    app.get("/orders", verifyJWT, async (req, res) => {
+      const query = {};
+      const cursor = ordersCollection.find(query);
+      const ordersArray = await cursor.toArray();
+      res.send(ordersArray);
     });
 
     // Get Filtered orders
