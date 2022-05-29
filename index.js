@@ -143,20 +143,19 @@ const run = async () => {
       res.send(result);
     });
 
-    // Get single inventory item
-    app.get("/inventory/:itemId", async (req, res) => {
-      const id = req.params.itemId;
-      const query = { _id: ObjectId(id) };
-      const result = await vegetables.findOne(query);
-      res.send(result);
-    });
-
     // Load all orders
     app.get("/orders", verifyJWT, async (req, res) => {
       const query = {};
       const cursor = ordersCollection.find(query);
       const ordersArray = await cursor.toArray();
       res.send(ordersArray);
+    });
+
+    app.get("/order/:orderId", async (req, res) => {
+      const id = req.params.orderId;
+      const query = { _id: ObjectId(id) };
+      const result = await ordersCollection.findOne(query);
+      res.send(result);
     });
 
     // Get Filtered orders
