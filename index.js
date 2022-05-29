@@ -3,8 +3,13 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const app = express();
+// const stripe = require("stripe")(
+//   "sk_test_51L4d6jJZT84KLAtmy1xwgF0QUEQnvXqRPAguUi9xTLI6SxVC8X2JyoaOw34Ty3OZbyuSYeSmj995JEQnYQfPTo1l00d7ND33kh"
+// );
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+const app = express();
 const port = process.env.PORT || 4000;
 
 app.use(cors());
@@ -151,11 +156,25 @@ const run = async () => {
       res.send(ordersArray);
     });
 
+    // Load single order for payment
     app.get("/order/:orderId", async (req, res) => {
       const id = req.params.orderId;
       const query = { _id: ObjectId(id) };
       const result = await ordersCollection.findOne(query);
       res.send(result);
+    });
+
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const part = req.body;
+      console.log(part);
+      const price = part.price;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({ clientSecret: paymentIntent.client_secret });
     });
 
     // Get Filtered orders
