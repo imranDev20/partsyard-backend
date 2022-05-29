@@ -76,6 +76,7 @@ const run = async () => {
     const reviewsCollection = database.collection("reviewsCollection");
     const ordersCollection = database.collection("ordersCollection");
     const usersCollection = database.collection("usersCollection");
+    const paymentsCollection = database.collection("paymentsCollection");
 
     // Make admin
     app.put("/user/admin/:email", verifyJWT, async (req, res) => {
@@ -164,6 +165,7 @@ const run = async () => {
       res.send(result);
     });
 
+    // Stripe Payment
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
       const part = req.body;
       console.log(part);
@@ -175,6 +177,23 @@ const run = async () => {
         payment_method_types: ["card"],
       });
       res.send({ clientSecret: paymentIntent.client_secret });
+    });
+
+    // Update order after payment
+    app.patch("/order/:orderId", verifyJWT, async (req, res) => {
+      const id = req.params.orderId;
+      const payment = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+
+      const updatedOrder = await ordersCollection.updateOne(filter, updatedDoc);
+      const result = await paymentsCollection.insertOne(payment);
+      res.send(updatedDoc);
     });
 
     // Get Filtered orders
