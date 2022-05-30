@@ -134,7 +134,7 @@ const run = async () => {
     });
 
     // Load single user
-    app.get("/user/:email", async (req, res) => {
+    app.get("/user/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const result = await usersCollection.findOne(query);
@@ -250,10 +250,26 @@ const run = async () => {
     // Create new review
     app.post("/reviews", async (req, res) => {
       const newReview = req.body;
-      console.log("adding new item", newReview);
+      console.log(newReview);
+      console.log("adding new review", newReview);
       const result = await reviewsCollection.insertOne(newReview);
       console.log(`A document was inserted with the _id: ${result.insertedId}`);
       res.send(result);
+      console.log(result);
+    });
+
+    // Get Filtered payments
+    app.get("/payments/filter/", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const email = req.query.email;
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = paymentsCollection.find(query);
+        const paymentsArray = await cursor.toArray();
+        res.send(paymentsArray);
+      } else {
+        res.status(403).send({ message: "Forbidden Access" });
+      }
     });
   } finally {
   }
