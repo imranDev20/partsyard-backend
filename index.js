@@ -149,6 +149,15 @@ const run = async () => {
       res.send(partsArray);
     });
 
+    // Add a new part
+    app.post("/parts", async (req, res) => {
+      const newPart = req.body;
+      console.log("adding new item", newPart);
+      const result = await partsCollection.insertOne(newPart);
+      console.log(`A document was inserted with the _id: ${result.insertedId}`);
+      res.send(result);
+    });
+
     // Load Single motor part
     app.get("/parts/:partId", async (req, res) => {
       const id = req.params.partId;
