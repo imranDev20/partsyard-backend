@@ -166,6 +166,15 @@ const run = async () => {
       res.send(result);
     });
 
+    // Delete a part
+    app.delete("/part/:partId", async (req, res) => {
+      const id = req.params.partId;
+      const query = { _id: ObjectId(id) };
+      const result = await partsCollection.deleteOne(query);
+      res.send(result);
+      console.log(result);
+    });
+
     // Load all orders
     app.get("/orders", verifyJWT, async (req, res) => {
       const query = {};
